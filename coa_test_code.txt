@@ -1,0 +1,240 @@
+#include <LiquidCrystal.h>
+#include <Keypad.h>
+
+const int buzzer=6;
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+const byte ROWS = 4;
+const byte COLS = 3;
+char Keys[ROWS][COLS] = {
+  { '1', '2', '3' },
+  { '4', '5', '6' },
+  { '7', '8', '9' },
+  { '*', '0', '#' }
+};
+byte rowPins[ROWS] = { 14, 15, 16, 17 };
+byte colPins[COLS] = { 8, 9, 10 };
+Keypad customKeypad = Keypad(makeKeymap(Keys), rowPins, colPins, ROWS, COLS);
+
+
+void setup() {
+  pinMode(7,OUTPUT);
+  pinMode(13,OUTPUT);
+  pinMode(buzzer,OUTPUT);
+  analogReference(INTERNAL);
+  lcd.begin(32, 2);
+  Serial.begin(9600);
+}
+float maxi = 0;
+float mini = 1000;
+float sum = 0;
+int count = 0;
+float temp;
+float avg;
+
+float avg_temp(float a, int c) {
+  float ans;
+  ans = a / c;
+  return ans;
+}
+int detect_keys() {
+  int number = 0;
+  int i = 2;
+
+  while (i--) {
+    char customKey;
+    customKey = customKeypad.waitForKey();
+    if (customKey == '*') {
+      break;
+    }
+    if (customKey == '1') {
+      number = number * 10 + 1;
+    }
+    if (customKey == '2') {
+      number = number * 10 + 2;
+    }
+    if (customKey == '3') {
+      number = number * 10 + 3;
+    }
+    if (customKey == '4') {
+      number = number * 10 + 4;
+    }
+    if (customKey == '5') {
+      number = number * 10 + 5;
+    }
+    if (customKey == '6') {
+      number = number * 10 + 6;
+    }
+    if (customKey == '7') {
+      number = number * 10 + 7;
+    }
+    if (customKey == '8') {
+      number = number * 10 + 8;
+    }
+    if (customKey == '9') {
+      number = number * 10 + 9;
+    }
+    if (customKey == '0') {
+      number = number * 10 + 0;
+    }
+
+    // lcd.setCursor(1, 1);
+    // lcd.print(number);
+    // lcd.clear();
+  }
+  return number;
+}
+
+void alarm_out(int a,int max,int min) {
+
+
+  if (a <= min) {
+    digitalWrite(13, HIGH);
+    digitalWrite(7, LOW);
+    // digitalWrite(11, LOW);
+    // digitalWrite(buzzer,LOW);
+    noTone(buzzer);
+    //delay(1000);
+  }
+  if (a > min && a < max) {
+    digitalWrite(13, LOW);
+    digitalWrite(7, LOW);
+    // digitalWrite(13, LOW);
+    // digitalWrite(buzzer,LOW);
+    noTone(buzzer);
+    //delay(1000);
+  }
+  if (a >= max) {
+    digitalWrite(13, LOW);
+    digitalWrite(7, HIGH);
+    tone(buzzer, 1000);
+    // delay(1000);
+  }
+}
+
+void loop() {
+
+
+  // int flag = 1;
+  lcd.setCursor(1, 0);
+  lcd.print("* Welcome to our arduino project *");
+  for (int counter = 0; counter < 25; counter++) {
+    lcd.scrollDisplayLeft();
+    delay(150);
+  }
+  lcd.clear();
+  lcd.setCursor(1, 0);
+  lcd.print("Press - 1");
+  lcd.setCursor(1, 1);
+  lcd.print("for room temp");
+  char customKey;
+  customKey = customKeypad.waitForKey();
+  lcd.clear();
+
+
+  
+  
+  if (customKey == '1') {
+    lcd.setCursor(1, 0);
+    lcd.print("Select OPTION - ");
+    lcd.setCursor(1, 1);
+    lcd.print("1-ST 2-AVG 3-MAX MIN");
+
+    customKey = customKeypad.waitForKey();
+    lcd.clear();
+    int t = 5,u=0,l=0;
+    if (customKey == '1') {
+      lcd.setCursor(1, 0);
+      lcd.print("enter the time:");
+      t = detect_keys();
+      lcd.setCursor(1, 1);
+      lcd.print(t);
+      delay(1000);
+      lcd.clear();
+
+      lcd.setCursor(1, 0);
+      lcd.print("enter upper limit:");
+      u = detect_keys();
+      lcd.setCursor(1, 1);
+      lcd.print(u);
+      delay(1000);
+      lcd.clear();
+
+      lcd.setCursor(1, 0);
+      lcd.print("enter lower limit:");
+      l = detect_keys();
+      lcd.setCursor(1, 1);
+      lcd.print(l);
+      delay(1000);
+      lcd.clear();
+
+
+
+      while (t--) {
+        temp = (float)100 * (1.1 / 1023) * analogRead(A4);
+        lcd.setCursor(0, 1);
+        lcd.print("Press 0 to exit.");
+        lcd.setCursor(0, 0);
+        lcd.print("Room tem : ");
+        lcd.setCursor(9, 0);
+        lcd.print(temp, 2);
+        lcd.print(" C");
+        Serial.print("Room temperature : ");
+        Serial.print(temp, 2);
+        Serial.println(" deg C");
+        sum = sum + temp;
+        alarm_out(temp,u,l);
+
+        if (temp > maxi) {
+          maxi = temp;
+        }
+        if (temp < mini) {
+          mini = temp;
+        }
+        count++;
+
+        delay(1000);
+        lcd.clear();
+      }
+    }
+    if (customKey == '2') {
+      lcd.setCursor(0, 1);
+      lcd.print("Press 0 to exit.");
+      lcd.setCursor(0, 0);
+      avg = avg_temp(sum, count);
+      lcd.print("Avg temp : ");
+      lcd.setCursor(9, 0);
+      lcd.print(avg, 2);
+      Serial.print("Avg temperature ");
+      Serial.print(avg, 2);
+      Serial.println(" deg C");
+      while (customKey != '0') { customKey = customKeypad.waitForKey(); }
+      lcd.clear();
+    }
+    if (customKey == '3') {
+      lcd.setCursor(0, 1);
+      lcd.print("Press 0 to exit.");
+      lcd.setCursor(0, 0);
+      lcd.print("MaX ");
+      lcd.setCursor(4, 0);
+      lcd.print(maxi, 2);
+      lcd.print(" C");
+      Serial.print("Max temp : ");
+      Serial.print(maxi, 2);
+      Serial.println(" C");
+
+      lcd.setCursor(13, 0);
+      lcd.print("Min ");
+      lcd.setCursor(17, 0);
+      lcd.print(mini, 2);
+      lcd.print(" C");
+      Serial.print("Mintemp");
+      Serial.print(mini, 2);
+      Serial.println(" C");
+
+      while (customKey != '0') { customKey = customKeypad.waitForKey(); }
+      lcd.clear();
+    }
+  }
+}
